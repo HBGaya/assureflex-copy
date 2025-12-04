@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "525785592439",
+    "project_id": "assureflex-dev",
+    "storage_bucket": "assureflex-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:525785592439:android:e6f694d995f0e223300c72",
+        "android_client_info": {
+          "package_name": "com.assureflex.assureflex"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDAie9DZL0L70VgyB3RfstJt4OUBsHEgnY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
