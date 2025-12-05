@@ -1,26 +1,30 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'dart:math';
+import 'package:assureflex/core/services/secure_storage_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  // You can log or handle background data here if needed
 }
 
 class NotificationService {
   NotificationService._();
   static final NotificationService I = NotificationService._();
 
-  final _storage = const FlutterSecureStorage();
-  static const _kFcmToken = 'fcm_token';
+  // IMPORTANT: Android options add karo
+  // final _storage = const FlutterSecureStorage(
+  //   aOptions: AndroidOptions(
+  //     encryptedSharedPreferences: true,
+  //     resetOnError: true,
+  //   ),
+  // );
 
   final _flutterLocal = FlutterLocalNotificationsPlugin();
 
-  // Android channel for heads-up notifications
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
     'assureflex_default',
     'AssureFlex Notifications',
@@ -31,35 +35,31 @@ class NotificationService {
   Future<void> init() async {
     try {
       await Firebase.initializeApp();
+      if (kDebugMode) print('🔥 Firebase initialized');
 
-      // iOS: request permission
       if (Platform.isIOS) {
         final settings = await FirebaseMessaging.instance.requestPermission(
           alert: true, badge: true, sound: true,
         );
-        debugPrint('APNs permission: ${settings.authorizationStatus}');
+        if (kDebugMode) print('APNs permission: ${settings.authorizationStatus}');
         await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
           alert: true, badge: true, sound: true,
         );
       }
 
-      // Register background handler
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-      // Local notifications init
-      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const androidInit = AndroidInitializationSettings('@mipmap/launcher_icon');
       const iosInit = DarwinInitializationSettings();
       const initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
       await _flutterLocal.initialize(initSettings);
 
-      // Android channel create
       if (Platform.isAndroid) {
         await _flutterLocal
             .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
             ?.createNotificationChannel(_channel);
       }
 
-      // Foreground message listener
       FirebaseMessaging.onMessage.listen((message) {
         final notification = message.notification;
         final android = message.notification?.android;
@@ -84,36 +84,74 @@ class NotificationService {
         }
       });
 
-      // Handle notification taps
       FirebaseMessaging.onMessageOpenedApp.listen((message) {
-        debugPrint('Notification tapped: ${message.data}');
+        if (kDebugMode) print('Notification tapped: ${message.data}');
       });
 
-      // Save the initial token with retry logic
+      // TOKEN SAVE - Using shared storage
       try {
+        if (kDebugMode) print('📱 Requesting FCM token...');
+
         final token = await FirebaseMessaging.instance.getToken()
-            .timeout(const Duration(seconds: 10));
-        if (token != null && token.isNotEmpty) {
-          await _storage.write(key: _kFcmToken, value: token);
-          debugPrint('FCM token: $token');
+            .timeout(const Duration(seconds: 20));
+
+        if (kDebugMode) {
+          print('📱 Token received: ${token != null ? "YES (${token.length} chars)" : "NULL"}');
         }
-      } catch (e) {
-        debugPrint('Failed to get FCM token: $e');
-        // Continue without token - can retry later
+
+        if (token != null && token.isNotEmpty) {
+          if (kDebugMode) {
+            final preview = token.substring(0, min(30, token.length));
+            print('📱 Token preview: $preview...');
+          }
+
+          // USE SHARED STORAGE
+          await SecureStorageService.I.saveFcmToken(token);
+          if (kDebugMode) print('💾 Token saved using shared storage');
+
+          // VERIFY
+          final verification = await SecureStorageService.I.readFcmToken();
+          if (verification == token) {
+            if (kDebugMode) print('✅ Token verification SUCCESS');
+          } else {
+            if (kDebugMode) print('❌ Token verification FAILED');
+          }
+        } else {
+          if (kDebugMode) print('⚠️ Token is null or empty');
+        }
+      } catch (e, stack) {
+        if (kDebugMode) {
+          print('❌ Failed to get/save FCM token: $e');
+          print('Stack: $stack');
+        }
       }
 
-      // Watch for token refresh
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-        await _storage.write(key: _kFcmToken, value: newToken);
-        debugPrint('FCM token refreshed: $newToken');
+        if (kDebugMode) {
+          print('🔄 Token refresh: ${newToken.substring(0, min(30, newToken.length))}...');
+        }
+
+        await SecureStorageService.I.saveFcmToken(newToken);
+        final saved = await SecureStorageService.I.readFcmToken();
+        if (kDebugMode) print(saved == newToken ? '✅ Refresh saved' : '❌ Refresh failed');
       });
-    } catch (e) {
-      debugPrint('Notification service init error: $e');
-      rethrow; // Let the caller handle it
+
+    } catch (e, stack) {
+      if (kDebugMode) {
+        print('❌ Notification service init error: $e');
+        print('Stack: $stack');
+      }
+      rethrow;
     }
   }
 
-  Future<String?> readToken() => _storage.read(key: _kFcmToken);
+  Future<String?> readToken() async {
+    final token = await SecureStorageService.I.readFcmToken();
+    if (kDebugMode) {
+      print('📖 Reading FCM token: ${token != null ? "Found (${token.length} chars)" : "NULL"}');
+    }
+    return token;
+  }
 
   String get platform => Platform.isAndroid ? 'android' : 'ios';
 }

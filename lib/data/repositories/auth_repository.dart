@@ -36,22 +36,21 @@ class AuthRepository {
   Future<bool> logout() async {
     // final token = await NotificationService.I.readToken() ?? '';
     // final platform = NotificationService.I.platform;
-    print(ApiEndpoints.logout);
-    final token = await AuthStorage.read();
-    final res = await _dio.post(ApiEndpoints.logout,options: Options(headers: {'Authorization': 'Bearer $token', 'Accept':'application/json'}));
+    try{
+      print(ApiEndpoints.logout);
+      final token = await AuthStorage.read();
+      await _dio.post(ApiEndpoints.logout,options: Options(headers: {'Authorization': 'Bearer $token', 'Accept':'application/json'}));
+      // final body = (res.data as Map).cast<String, dynamic>();
+      // ResponseGuard.unwrap(body);
+      // final auth = AuthResponse.fromWrapped(body);
 
-    print(res.data);
-    // final body = (res.data as Map).cast<String, dynamic>();
-    // ResponseGuard.unwrap(body);
-    // final auth = AuthResponse.fromWrapped(body);
-
-    // if (auth.token.isEmpty) throw Exception('Missing token in response');
-
-    if(res.statusCode==200){
+      // if (auth.token.isEmpty) throw Exception('Missing token in response');
+    }catch(e){
+      print('Something went wrong\n$e');
+    }finally{
       await AuthStorage.clear();
       return true;
     }
-    return false;
   }
 
   Future<void> register({
