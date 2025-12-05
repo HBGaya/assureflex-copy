@@ -1,4 +1,8 @@
 class Env {
+  /// staging Url below
   // static const String baseUrl = 'https://api-assureflex.leensphere.com/api/v1/';
-  static const String baseUrl = 'https://api-assureflex.leendesignstudio.com/';
+
+  /// production Url below
+  static const String baseUrl =
+      'https://api-assureflex.leendesignstudio.com/api/v1/';
 }
