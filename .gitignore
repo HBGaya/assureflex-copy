@@ -1,3 +1,29 @@
-
 # FVM Version Cache
 .fvm/
+
+# Flutter/Dart
+.dart_tool/
+.packages
+.pub-cache/
+build/
+generated_plugin_registrant.dart
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+
+# Xcode
+ios/Flutter/Flutter.podspec
+ios/Pods/
+ios/.symlinks/
+/ios/Flutter/Generated.xcconfig
+ios/Flutter/AppFrameworkInfo.plist
+
+# Android
+android/.gradle/
+android/app/release/
+android/app/debug/
+android/local.properties
+
+# Other
+*.lock
