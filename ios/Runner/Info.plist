@@ -45,6 +45,8 @@
         <array>
             <integer>1</integer>
         </array>
+        <key>NSPhotoLibraryUsageDescription</key>
+        <string>This app requires access to your photo library to allow uploading and managing photos within the app.</string>
 		<key>CADisableMinimumFrameDurationOnPhone</key>
 		<true/>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
